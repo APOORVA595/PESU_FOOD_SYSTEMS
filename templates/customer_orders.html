@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - FoodFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .notification-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .order-ready {
+            border-left: 5px solid #28a745;
+            background: linear-gradient(to right, #d4edda 0%, #ffffff 100%);
+            animation: glow 2s infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(40, 167, 69, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.8); }
+        }
+        
+        .order-preparing {
+            border-left: 5px solid #ffc107;
+        }
+        
+        .order-completed {
+            opacity: 0.6;
+            border-left: 5px solid #6c757d;
+        }
+        
+        .status-preparing { background-color: #fff3cd; }
+        .status-ready { background-color: #d4edda; }
+        .status-completed { background-color: #e2e3e5; }
+        
+        .notification-sound {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Notification Badge -->
+    <div id="notificationBadge" class="notification-badge d-none">
+        <div class="alert alert-success alert-dismissible fade show shadow-lg" role="alert">
+            <h5 class="alert-heading">🎉 Order Ready!</h5>
+            <p id="notificationMessage"></p>
+            <button type="button" class="btn-close" onclick="dismissNotification()"></button>
+        </div>
+    </div>
+
+    <!-- Hidden audio for notification sound -->
+    <audio id="notificationSound" class="notification-sound">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjGH0fPTgjMGHm7A7+OZVA0PVKno771qJAY=" type="audio/wav">
+    </audio>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">🍕 FoodFlow</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/order-page">Order Food</a>
+                <a class="nav-link active" href="/my-orders">My Orders</a>
+                <a class="nav-link" href="/">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>📦 My Orders</h1>
+            <button class="btn btn-primary" onclick="checkForUpdates()">
+                <span id="refreshIcon">🔄</span> Refresh
+            </button>
+        </div>
+
+        <!-- Customer ID Input -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="customerId" class="form-label">Customer ID</label>
+                        <input type="text" class="form-control" id="customerId" 
+                               value="CUST001" placeholder="Enter your Customer ID">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button class="btn btn-success w-100" onclick="loadOrders()">
+                            Load My Orders
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingSpinner" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading your orders...</p>
+        </div>
+
+        <div id="ordersContainer" class="row"></div>
+
+        <div id="noOrders" class="alert alert-info text-center d-none">
+            <h4>📭 No Orders Found</h4>
+            <p>You haven't placed any orders yet. <a href="/order-page">Order now!</a></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let customerId = 'CUST001';
+        let previousReadyOrders = new Set();
+        let autoRefreshInterval;
+
+        // Load orders on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedCustomerId = sessionStorage.getItem('user_id');
+            if (storedCustomerId) {
+                customerId = storedCustomerId;
+                document.getElementById('customerId').value = customerId;
+            }
+            loadOrders();
+            
+            // Auto-refresh every 5 seconds
+            autoRefreshInterval = setInterval(checkForUpdates, 5000);
+        });
+
+        async function loadOrders() {
+            customerId = document.getElementById('customerId').value.trim();
+            if (!customerId) {
+                alert('Please enter your Customer ID');
+                return;
+            }
+
+            const container = document.getElementById('ordersContainer');
+            const spinner = document.getElementById('loadingSpinner');
+            const noOrders = document.getElementById('noOrders');
+
+            spinner.classList.remove('d-none');
+            container.innerHTML = '';
+            noOrders.classList.add('d-none');
+
+            try {
+                const response = await fetch(`/api/customer/my-orders/${customerId}`);
+                const data = await response.json();
+
+                spinner.classList.add('d-none');
+
+                if (data.status === 'Success' && data.orders && data.orders.length > 0) {
+                    displayOrders(data.orders);
+                    checkForNewReadyOrders(data.orders);
+                } else {
+                    noOrders.classList.remove('d-none');
+                }
+
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                spinner.classList.add('d-none');
+                alert('Failed to load orders. Please check your connection.');
+            }
+        }
+
+        function displayOrders(orders) {
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = '';
+
+            orders.forEach(order => {
+                const card = createOrderCard(order);
+                container.appendChild(card);
+            });
+        }
+
+        function createOrderCard(order) {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-4';
+
+            const statusClass = order.kitchen_status === 'Ready' ? 'order-ready' :
+                               order.order_status === 'Completed' ? 'order-completed' :
+                               'order-preparing';
+
+            const statusBadge = order.kitchen_status === 'Ready' ? 
+                '<span class="badge bg-success status-ready">✅ READY FOR PICKUP!</span>' :
+                order.order_status === 'Completed' ?
+                '<span class="badge bg-secondary status-completed">Completed</span>' :
+                '<span class="badge bg-warning status-preparing">👨‍🍳 Preparing</span>';
+
+            const pickupButton = order.kitchen_status === 'Ready' && order.order_status !== 'Completed' ?
+                `<button class="btn btn-success w-100 mt-3" onclick="markAsPickedUp('${order.order_id}')">
+                    ✅ Mark as Picked Up
+                </button>` : '';
+
+            col.innerHTML = `
+                <div class="card ${statusClass} shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title">Order #${order.order_id}</h5>
+                            ${statusBadge}
+                        </div>
+                        
+                        <div class="mb-2">
+                            <strong>🏪 Shop:</strong> ${order.shop_name}<br>
+                            <strong>📍 Location:</strong> ${order.shop_location || 'N/A'}<br>
+                            <strong>⏰ Ordered:</strong> ${new Date(order.order_time).toLocaleString()}<br>
+                            <strong>💰 Total:</strong> ₹${order.total_amount?.toFixed(2) || '0.00'}
+                        </div>
+
+                        <div class="alert alert-light mb-2">
+                            <strong>📝 Items:</strong><br>
+                            ${order.order_items || 'N/A'}
+                        </div>
+
+                        ${order.actual_prep_time ? `
+                            <div class="text-muted small">
+                                ⏱️ Prepared in: ${order.actual_prep_time}
+                            </div>
+                        ` : ''}
+
+                        ${pickupButton}
+                    </div>
+                </div>
+            `;
+
+            return col;
+        }
+
+        function checkForNewReadyOrders(orders) {
+            const currentReadyOrders = new Set(
+                orders
+                    .filter(o => o.kitchen_status === 'Ready' && o.order_status !== 'Completed')
+                    .map(o => o.order_id)
+            );
+
+            currentReadyOrders.forEach(orderId => {
+                if (!previousReadyOrders.has(orderId)) {
+                    showNotification(orderId);
+                    playNotificationSound();
+                }
+            });
+
+            previousReadyOrders = currentReadyOrders;
+        }
+
+        function showNotification(orderId) {
+            const badge = document.getElementById('notificationBadge');
+            const message = document.getElementById('notificationMessage');
+            
+            message.textContent = `Your order ${orderId} is ready for pickup! 🎉`;
+            badge.classList.remove('d-none');
+
+            // Auto-dismiss after 10 seconds
+            setTimeout(dismissNotification, 10000);
+        }
+
+        function dismissNotification() {
+            document.getElementById('notificationBadge').classList.add('d-none');
+        }
+
+        function playNotificationSound() {
+            const sound = document.getElementById('notificationSound');
+            sound.play().catch(e => console.log('Audio play failed:', e));
+        }
+
+        async function checkForUpdates() {
+            const icon = document.getElementById('refreshIcon');
+            icon.style.animation = 'spin 1s linear infinite';
+            
+            await loadOrders();
+            
+            setTimeout(() => {
+                icon.style.animation = '';
+            }, 1000);
+        }
+
+        async function markAsPickedUp(orderId) {
+            if (!confirm(`Mark order ${orderId} as picked up?`)) return;
+
+            try {
+                const response = await fetch(`/api/customer/complete-order/${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'Success') {
+                    alert('✅ Order marked as picked up!');
+                    loadOrders();
+                } else {
+                    alert('Failed to update order: ' + result.message);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // Cleanup interval on page unload
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+
+        // CSS animation for refresh icon
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            </style>
+        `);
+    </script>
+</body>
+</html>

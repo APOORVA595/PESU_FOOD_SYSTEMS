@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports - FoodFlow</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<div class="container">
+<a class="navbar-brand" href="#">🍕 FoodFlow Reports</a>
+<div class="navbar-nav ms-auto">
+<a class="nav-link" href="/">Home</a>
+<a class="nav-link" href="/kitchen.html">Kitchen</a>
+<a class="nav-link active" href="/reports.html">Reports</a>
+</div>
+</div>
+</nav>
+<div class="container mt-4">
+    <h1 class="mb-4">Business Intelligence Dashboard</h1>
+    
+    <!-- Report Cards -->
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Orders</h5>
+                    <h2 class="card-text">15</h2>
+                    <p class="card-text">This week</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue</h5>
+                    <h2 class="card-text">₹2,450</h2>
+                    <p class="card-text">This week</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Orders</h5>
+                    <h2 class="card-text">3</h2>
+                    <p class="card-text">Currently</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock</h5>
+                    <h2 class="card-text">2</h2>
+                    <p class="card-text">Items</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 Sales Report</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Quantity Sold</th>
+                                    <th>Total Revenue</th>
+                                    <th>Popularity Rank</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Veg Burger</td>
+                                    <td>25</td>
+                                    <td>₹3,000</td>
+                                    <td>#1</td>
+                                </tr>
+                                <tr>
+                                    <td>Fries</td>
+                                    <td>18</td>
+                                    <td>₹1,440</td>
+                                    <td>#2</td>
+                                </tr>
+                                <tr>
+                                    <td>Cappuccino</td>
+                                    <td>12</td>
+                                    <td>₹1,800</td>
+                                    <td>#3</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

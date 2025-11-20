@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Menu - FoodFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .shop-section {
+            border: 3px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+        }
+        .shop-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .shop-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 0;
+        }
+        .shop-location {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .menu-item-card {
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 5px solid #28a745;
+            position: relative;
+            height: 100%;
+        }
+        .menu-item-card.low-stock {
+            opacity: 0.8;
+            border-left-color: #ffc107;
+        }
+        .menu-item-card.out-of-stock {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-left-color: #dc3545;
+        }
+        .menu-item-card:hover:not(.out-of-stock) {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            border-left-color: #20c997;
+        }
+        .badge-countdown {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .cart-sticky {
+            position: sticky;
+            top: 1rem;
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
+        }
+        .no-items-message {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        /* 🔔 NOTIFICATION STYLES */
+        .notification-popup {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 10000;
+            min-width: 350px;
+            max-width: 400px;
+            animation: slideInRight 0.5s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .pulse-animation {
+            animation: pulseNotification 2s infinite;
+        }
+        
+        @keyframes pulseNotification {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
+            50% { transform: scale(1.02); box-shadow: 0 6px 25px rgba(40, 167, 69, 0.6); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 🔔 NOTIFICATION CONTAINER -->
+    <div id="notificationContainer"></div>
+    
+    <!-- Hidden audio for notification sound -->
+    <audio id="notificationSound" style="display:none;">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjGH0fPTgjMGHm7A7+OZVA0PVKno771qJAY=" type="audio/wav">
+    </audio>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">🍕 FoodFlow Customer</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Home</a>
+                <a class="nav-link active" href="/order-page">Menu</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1 class="mb-4 text-center">Today's Delicious Menu</h1>
+        
+        <div id="loading" class="alert alert-info text-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Loading shops and menu items...
+        </div>
+        <div id="errorMessage" class="alert alert-danger d-none" role="alert"></div>
+
+        <!-- Main Content Row: Shops & Menu + Cart -->
+        <div class="row">
+            <!-- Shops & Menu Column -->
+            <div class="col-lg-8">
+                <div id="shopsContainer">
+                    <!-- Shop sections will be injected here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Cart Column -->
+            <div class="col-lg-4">
+                <div class="card shadow-lg cart-sticky">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">🛒 Your Cart (<span id="cartCount">0</span> Items)</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul id="cartList" class="list-group list-group-flush">
+                            <li class="list-group-item text-center text-muted" id="emptyCartMessage">Your cart is empty.</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer">
+                        <p class="h5 mb-3">Total: <span id="cartTotal" class="text-success fw-bold">₹0.00</span></p>
+                        
+                        <!-- Order Form -->
+                        <form id="orderForm">
+                            <div class="mb-3">
+                                <input type="text" class="form-control" id="customerId" placeholder="Customer ID" required value="CUST001">
+                            </div>
+                            <div class="mb-3">
+                                <select class="form-select" id="shopSelect" required>
+                                    <option value="">Select Shop for Order</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <select class="form-select" id="paymentMode" required>
+                                    <option value="">Payment Mode</option>
+                                    <option value="Card">Card</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="UPI">UPI</option>
+                                </select>
+                            </div>
+                            <button type="submit" id="placeOrderButton" class="btn btn-success w-100 btn-lg" disabled>Place Order</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="statusModalLabel">Order Status</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="statusModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE_URL = '';
+        const cart = {};
+        let shopsData = [];
+        
+        // 🔔 NOTIFICATION SYSTEM VARIABLES
+        let currentCustomerId = null;
+        let notificationCheckInterval = null;
+        let lastCheckedOrders = new Set();
+
+        const shopsContainer = document.getElementById('shopsContainer');
+        const cartList = document.getElementById('cartList');
+        const cartTotalSpan = document.getElementById('cartTotal');
+        const cartCountSpan = document.getElementById('cartCount');
+        const emptyCartMessage = document.getElementById('emptyCartMessage');
+        const placeOrderButton = document.getElementById('placeOrderButton');
+        const orderForm = document.getElementById('orderForm');
+        const loadingDiv = document.getElementById('loading');
+        const errorMessageDiv = document.getElementById('errorMessage');
+        const shopSelect = document.getElementById('shopSelect');
+
+        const statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
+        const statusModalBody = document.getElementById('statusModalBody');
+
+        function showMessage(message, type = 'danger') {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.className = `alert alert-${type}`;
+            errorMessageDiv.classList.remove('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+                errorMessageDiv.classList.add('d-none');
+            }, 5000);
+        }
+
+        function updateCart() {
+            let total = 0;
+            let count = 0;
+            cartList.innerHTML = '';
+
+            for (const id in cart) {
+                const item = cart[id];
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                count += item.quantity;
+
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    <div>
+                        <small class="text-muted">${item.shop_name}</small><br>
+                        ${item.item_name} <span class="badge bg-secondary rounded-pill">${item.quantity}</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold">₹${itemTotal.toFixed(2)}</span>
+                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart('${item.item_ID}')">
+                            &times;
+                        </button>
+                    </div>
+                `;
+                cartList.appendChild(li);
+            }
+
+            cartTotalSpan.textContent = `₹${total.toFixed(2)}`;
+            cartCountSpan.textContent = count;
+            
+            if (count > 0) {
+                emptyCartMessage.style.display = 'none';
+                placeOrderButton.disabled = false;
+            } else {
+                emptyCartMessage.style.display = 'block';
+                placeOrderButton.disabled = true;
+            }
+        }
+        
+        function addToCart(item, maxAvailable, shopName, shopId) {
+            const itemId = item.item_ID;
+            
+            if (!item.available || item.available <= 0) {
+                showMessage(`Sorry, ${item.item_name} is currently out of stock.`, 'warning');
+                return;
+            }
+
+            if (!cart[itemId]) {
+                cart[itemId] = { 
+                    ...item, 
+                    quantity: 0, 
+                    available: maxAvailable,
+                    shop_name: shopName,
+                    shop_id: shopId
+                };
+            }
+            
+            if (cart[itemId].quantity < maxAvailable) {
+                cart[itemId].quantity += 1;
+                showMessage(`Added ${item.item_name} from ${shopName} to cart!`, 'success');
+            } else {
+                showMessage(`Maximum available quantity reached for ${item.item_name}.`, 'warning');
+            }
+            
+            updateCart();
+        }
+
+        function removeFromCart(itemId) {
+            if (cart[itemId]) {
+                cart[itemId].quantity -= 1;
+                if (cart[itemId].quantity <= 0) {
+                    delete cart[itemId];
+                }
+            }
+            updateCart();
+        }
+
+        function displayShopsAndMenu(shopsWithMenu) {
+            shopsContainer.innerHTML = '';
+            loadingDiv.classList.add('d-none');
+            
+            if (shopsWithMenu.length === 0) {
+                shopsContainer.innerHTML = '<div class="no-items-message">No shops available at the moment.</div>';
+                return;
+            }
+
+            shopSelect.innerHTML = '<option value="">Select Shop for Order</option>';
+            
+            shopsWithMenu.forEach(shop => {
+                const option = document.createElement('option');
+                option.value = shop.shop_ID;
+                option.textContent = `${shop.shop_ID} - ${shop.shop_name}`;
+                shopSelect.appendChild(option);
+
+                const shopSection = document.createElement('div');
+                shopSection.className = 'shop-section';
+                shopSection.id = `shop-${shop.shop_ID}`;
+                
+                const shopHeader = document.createElement('div');
+                shopHeader.className = 'shop-header';
+                shopHeader.innerHTML = `
+                    <p class="shop-name">${shop.shop_ID} - ${shop.shop_name}</p>
+                    <p class="shop-location mb-0">📍 Location: ${shop.location || 'Not specified'}</p>
+                `;
+                
+                shopSection.appendChild(shopHeader);
+                
+                const menuGrid = document.createElement('div');
+                menuGrid.className = 'row';
+                
+                if (shop.menu_items && shop.menu_items.length > 0) {
+                    shop.menu_items.forEach(item => {
+                        const available = item.available || 0;
+                        const isLowStock = available > 0 && available <= 5;
+                        const isOutOfStock = available <= 0;
+                        
+                        let cardClass = 'menu-item-card';
+                        let availableBadge = '';
+                        let stockStatus = '';
+                        
+                        if (isOutOfStock) {
+                            cardClass += ' out-of-stock';
+                            availableBadge = '<span class="badge bg-danger">OUT OF STOCK</span>';
+                            stockStatus = 'out-of-stock';
+                        } else if (isLowStock) {
+                            cardClass += ' low-stock';
+                            availableBadge = `<span class="badge bg-warning text-dark">Only ${available} left!</span>`;
+                            stockStatus = 'low-stock';
+                        }
+
+                        const countdownBadge = item.countdown ? 
+                            `<span class="badge bg-danger badge-countdown position-absolute top-0 end-0 m-2">
+                                ${item.countdown} min prep
+                            </span>` : '';
+
+                        const col = document.createElement('div');
+                        col.className = 'col-md-6 mb-3';
+                        col.innerHTML = `
+                            <div class="card ${cardClass} shadow-sm" 
+                                 data-item-id="${item.item_ID}" 
+                                 data-stock-status="${stockStatus}">
+                                ${countdownBadge}
+                                <div class="card-body">
+                                    <h5 class="card-title text-success mb-2">${item.item_name}</h5>
+                                    <p class="card-text text-muted mb-2">
+                                        <span class="fw-bold fs-5 text-dark">₹${parseFloat(item.price).toFixed(2)}</span>
+                                    </p>
+                                    ${availableBadge}
+                                </div>
+                            </div>
+                        `;
+                        
+                        const card = col.querySelector('.card');
+                        card.addEventListener('click', function() {
+                            if (!isOutOfStock) {
+                                addToCart(item, available, shop.shop_name, shop.shop_ID);
+                            }
+                        });
+                        
+                        menuGrid.appendChild(col);
+                    });
+                } else {
+                    menuGrid.innerHTML = '<div class="col-12"><p class="text-center text-muted">No menu items available for this shop.</p></div>';
+                }
+                
+                shopSection.appendChild(menuGrid);
+                shopsContainer.appendChild(shopSection);
+            });
+        }
+
+        async function fetchAllShopsAndMenu() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/menu`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const menuData = await response.json();
+                
+                if (menuData.status === 'Failed') {
+                    throw new Error(menuData.message);
+                }
+
+                const shopsMap = {};
+                
+                menuData.forEach(item => {
+                    const shopId = item.shop_ID;
+                    
+                    if (!shopsMap[shopId]) {
+                        shopsMap[shopId] = {
+                            shop_ID: shopId,
+                            shop_name: item.shop_name,
+                            location: item.location || 'Not specified',
+                            menu_items: []
+                        };
+                    }
+                    
+                    shopsMap[shopId].menu_items.push({
+                        item_ID: item.item_ID,
+                        item_name: item.item_name,
+                        price: item.price,
+                        countdown: item.countdown,
+                        available: item.quantity
+                    });
+                });
+                
+                shopsData = Object.values(shopsMap);
+                displayShopsAndMenu(shopsData);
+
+            } catch (error) {
+                console.error("Error fetching shops and menu:", error);
+                loadingDiv.classList.add('d-none');
+                showMessage(`Failed to load menu: ${error.message}`, 'danger');
+            }
+        }
+
+        // 🔔 NOTIFICATION SYSTEM FUNCTIONS
+        function startNotificationChecker(customerId) {
+            currentCustomerId = customerId;
+            checkOrderStatus();
+            
+            if (notificationCheckInterval) {
+                clearInterval(notificationCheckInterval);
+            }
+            notificationCheckInterval = setInterval(checkOrderStatus, 5000);
+        }
+
+        async function checkOrderStatus() {
+            if (!currentCustomerId) return;
+            
+            try {
+                const response = await fetch(`/api/customer/my-orders/${currentCustomerId}`);
+                const data = await response.json();
+                
+                if (data.status === 'Success' && data.orders) {
+                    data.orders.forEach(order => {
+                        if (order.kitchen_status === 'Ready' && 
+                            order.order_status !== 'Completed' &&
+                            !lastCheckedOrders.has(order.order_id)) {
+                            
+                            showNotification(order);
+                            lastCheckedOrders.add(order.order_id);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Notification check skipped');
+            }
+        }
+
+        function showNotification(order) {
+            const container = document.getElementById('notificationContainer');
+            
+            const notification = document.createElement('div');
+            notification.className = 'notification-popup';
+            notification.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show shadow-lg pulse-animation" role="alert">
+                    <h4 class="alert-heading mb-2">🎉 Order Ready!</h4>
+                    <hr>
+                    <p class="mb-1"><strong>Order:</strong> ${order.order_id}</p>
+                    <p class="mb-1"><strong>Shop:</strong> ${order.shop_name}</p>
+                    <p class="mb-2"><strong>Items:</strong> ${order.order_items || 'Your food'}</p>
+                    <button type="button" class="btn-close" onclick="this.closest('.notification-popup').remove()"></button>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            playNotificationSound();
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 15000);
+        }
+
+        function playNotificationSound() {
+            const sound = document.getElementById('notificationSound');
+            sound.play().catch(e => console.log('Sound play failed'));
+        }
+
+        async function submitOrder(e) {
+            e.preventDefault();
+
+            const customerId = document.getElementById('customerId').value.trim();
+            const shopId = document.getElementById('shopSelect').value;
+            const paymentMode = document.getElementById('paymentMode').value;
+            const totalAmount = parseFloat(cartTotalSpan.textContent.replace('₹', ''));
+            
+            if (!customerId || !shopId || !paymentMode) {
+                showMessage('Please fill all required fields.', 'danger');
+                return;
+            }
+
+            const orderItems = Object.values(cart).map(item => ({
+                item_ID: item.item_ID,
+                quantity: item.quantity
+            }));
+            
+            if (orderItems.length === 0) {
+                showMessage('Your cart is empty!', 'danger');
+                return;
+            }
+
+            placeOrderButton.disabled = true;
+            placeOrderButton.textContent = 'Processing...';
+
+            const orderData = {
+                customer_id: customerId,
+                shop_id: shopId,
+                items: orderItems,
+                payment_mode: paymentMode,
+                total_amount: totalAmount
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/place_order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || `Server Error: ${response.status}`);
+                }
+                
+                // ✅ SUCCESS - Show modal and start notifications
+                statusModalBody.innerHTML = `
+                    <div class="text-center">
+                        <h3 class="text-success mb-3">✓ Order Placed Successfully!</h3>
+                        <div class="alert alert-info">
+                            <strong>Order ID:</strong> <code>${result.order_id}</code><br>
+                            <strong>Total:</strong> ₹${totalAmount.toFixed(2)}<br>
+                            <strong>Prep Time:</strong> ${result.order_timing?.countdown_timer || 'Soon'}
+                        </div>
+                        <div class="alert alert-success">
+                            <strong>🔔 Notifications Enabled!</strong><br>
+                            You'll get a popup when your order is ready.<br>
+                            <small class="text-muted">Keep this page open to receive alerts.</small>
+                        </div>
+                    </div>
+                `;
+                statusModal.show();
+
+                // 🔔 START NOTIFICATION CHECKER
+                startNotificationChecker(customerId);
+
+                // Clear cart
+                for (const key in cart) delete cart[key];
+                updateCart();
+                orderForm.reset();
+                document.getElementById('customerId').value = customerId;
+
+            } catch (error) {
+                console.error("Order Error:", error);
+                showMessage(`Failed: ${error.message}`, 'danger');
+            } finally {
+                placeOrderButton.disabled = false;
+                placeOrderButton.textContent = 'Place Order';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', fetchAllShopsAndMenu);
+        orderForm.addEventListener('submit', submitOrder);
+        window.removeFromCart = removeFromCart;
+        
+        // Cleanup on page close
+        window.addEventListener('beforeunload', () => {
+            if (notificationCheckInterval) {
+                clearInterval(notificationCheckInterval);
+            }
+        });
+    </script>
+</body>
+</html>

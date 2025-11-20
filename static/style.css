@@ -1,0 +1,16 @@
+/* static/style.css */
+
+/* Basic body styling */
+body {
+    background-color: #f8f9fa; /* Light grey background */
+}
+
+/* Custom card style for menu items */
+.card-body {
+    padding: 15px;
+}
+
+/* Highlight the main header */
+h1 {
+    font-weight: 600;
+}

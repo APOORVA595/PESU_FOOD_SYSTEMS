@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Management - FoodFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .order-card {
+            transition: all 0.3s;
+            border-left: 5px solid #ffc107;
+            margin-bottom: 1rem;
+        }
+        .order-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        .order-card-ready {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+        .kitchen-header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .low-stock { 
+            background-color: #fff3cd; 
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">🍳 FoodFlow Kitchen</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Home</a>
+                <a class="nav-link active" href="/kitchen.html">Kitchen</a>
+                <a class="nav-link" href="/admin-dashboard">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="kitchen-header text-center">
+            <h1 class="mb-2">🔥 Kitchen Management Dashboard</h1>
+            <p class="mb-0">Manage active orders and update preparation status</p>
+        </div>
+        
+        <!-- Pending Orders Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">⏰ Active Orders Queue</h5>
+                        <button class="btn btn-sm btn-dark" onclick="fetchActiveOrders()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingOrders" class="text-center py-4">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading orders...</p>
+                        </div>
+                        <div id="orderQueueContainer" class="row"></div>
+                        <div id="orderQueuePlaceholder" class="alert alert-info text-center d-none">
+                            No active orders currently in the queue.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Management Section -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">📦 Quick Inventory Update</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="inventoryForm">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="itemId" class="form-label">Item ID</label>
+                                    <input type="text" class="form-control" id="itemId" placeholder="e.g., MI001" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="quantityUsed" class="form-label">Quantity Used</label>
+                                    <input type="number" class="form-control" id="quantityUsed" placeholder="Enter quantity" required min="1">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary w-100">Update Inventory</button>
+                                </div>
+                            </div>
+                            <div id="inventoryMessage" class="alert mt-3 d-none"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let autoRefreshInterval;
+
+        // Fetch active orders on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchActiveOrders();
+            // Auto-refresh every 10 seconds
+            autoRefreshInterval = setInterval(fetchActiveOrders, 10000);
+        });
+
+        async function fetchActiveOrders() {
+            const queueContainer = document.getElementById('orderQueueContainer');
+            const placeholder = document.getElementById('orderQueuePlaceholder');
+            const loadingDiv = document.getElementById('loadingOrders');
+            
+            loadingDiv.classList.remove('d-none');
+            placeholder.classList.add('d-none');
+            queueContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/admin/active-orders');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const orders = await response.json();
+                
+                loadingDiv.classList.add('d-none');
+
+                if (orders.status === 'Failed') {
+                    throw new Error(orders.message);
+                }
+
+                if (!orders || orders.length === 0) {
+                    placeholder.classList.remove('d-none');
+                    return;
+                }
+
+                orders.forEach(order => {
+                    if (order.current_status === 'Preparing') {
+                        const orderCard = createOrderCard(order);
+                        queueContainer.insertAdjacentHTML('beforeend', orderCard);
+                    }
+                });
+                
+                if (queueContainer.innerHTML === '') {
+                    placeholder.classList.remove('d-none');
+                }
+
+            } catch (error) {
+                console.error('Error fetching active orders:', error);
+                loadingDiv.classList.add('d-none');
+                placeholder.textContent = `Error: ${error.message}`;
+                placeholder.classList.remove('alert-info', 'd-none');
+                placeholder.classList.add('alert-danger');
+            }
+        }
+
+        function createOrderCard(order) {
+            const orderTime = new Date(order.order_time).toLocaleTimeString();
+            const itemsList = order.order_items || 'Items not detailed';
+            
+            return `
+                <div class="col-md-4 mb-4">
+                    <div class="card order-card h-100 shadow-sm" id="order-card-${order.order_id}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title text-primary mb-0">#${order.order_id}</h5>
+                                <span class="badge bg-warning text-dark status-badge">Preparing</span>
+                            </div>
+                            
+                            <p class="card-text mb-2">
+                                <strong>Shop:</strong> ${order.shop_name}<br>
+                                <strong>Customer:</strong> ${order.customer_id}<br>
+                                <strong>Order Time:</strong> ${orderTime}<br>
+                                <strong>Items:</strong> ${order.item_count}
+                            </p>
+                            
+                            <div class="alert alert-light mb-3 small">
+                                <strong>Order Details:</strong><br>
+                                ${itemsList}
+                            </div>
+                            
+                            <button 
+                                class="btn btn-success w-100 btn-mark-ready" 
+                                onclick="markOrderAsReady('${order.order_id}', '${order.prep_id}', this)"
+                                id="ready-btn-${order.order_id}">
+                                ✓ Mark Ready (Trigger Notification)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function markOrderAsReady(orderId, prepId, buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
+            
+            try {
+                const response = await fetch('/api/admin/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prep_id: prepId, 
+                        new_status: 'Ready' 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'Success') {
+                    // Frontend update: highlight the card and change the button
+                    const orderCard = document.getElementById(`order-card-${orderId}`);
+                    orderCard.classList.add('order-card-ready');
+                    
+                    buttonElement.textContent = '✓ READY! (Notification Sent)';
+                    buttonElement.classList.remove('btn-success');
+                    buttonElement.classList.add('btn-secondary');
+                    
+                    // Show success message
+                    showToast('success', `Order ${orderId} marked as ready! Customer will be notified.`);
+                    
+                    // Remove card after 3 seconds
+                    setTimeout(() => {
+                        orderCard.closest('.col-md-4').remove();
+                        
+                        // Check if any orders are left
+                        const queueContainer = document.getElementById('orderQueueContainer');
+                        const placeholder = document.getElementById('orderQueuePlaceholder');
+                        
+                        if (queueContainer.children.length === 0) {
+                            placeholder.classList.remove('d-none');
+                        }
+                    }, 3000);
+
+                    console.log(`Order ${orderId} marked ready. Notification triggered via SQL trigger.`);
+                    
+                } else {
+                    throw new Error(result.message || 'Failed to update order');
+                }
+
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                showToast('danger', `Failed to update order ${orderId}: ${error.message}`);
+                buttonElement.disabled = false;
+                buttonElement.textContent = '✓ Mark Ready (Trigger Notification)';
+            }
+        }
+
+        // Inventory Form Handler
+        document.getElementById('inventoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const itemId = document.getElementById('itemId').value.trim();
+            const quantity = parseInt(document.getElementById('quantityUsed').value);
+            const messageDiv = document.getElementById('inventoryMessage');
+            
+            if (!itemId || quantity <= 0) {
+                showInventoryMessage('Please enter valid item ID and quantity.', 'danger');
+                return;
+            }
+
+            try {
+                // Call UpdateInventory procedure or direct update
+                const response = await fetch('/api/admin/update-inventory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        item_id: itemId, 
+                        quantity_used: quantity 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'Success') {
+                    showInventoryMessage(`Inventory updated: ${itemId} - ${quantity} units used.`, 'success');
+                    this.reset();
+                } else {
+                    showInventoryMessage(result.message || 'Failed to update inventory.', 'danger');
+                }
+
+            } catch (error) {
+                console.error('Inventory update error:', error);
+                showInventoryMessage(`Error: ${error.message}`, 'danger');
+            }
+        });
+
+        function showInventoryMessage(message, type) {
+            const messageDiv = document.getElementById('inventoryMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `alert alert-${type} mt-3`;
+            messageDiv.classList.remove('d-none');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('d-none');
+            }, 4000);
+        }
+
+        function showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+            toast.style.zIndex = '9999';
+            toast.style.minWidth = '300px';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+
+        // Clean up interval on page unload
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
