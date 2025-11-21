@@ -98,7 +98,7 @@ DBMS MINI PROJECT/
 │   └── reports_dashboard.html
 ├── app.py
 ├── functions.sql
-├── PESU_FOOD_SYSTEMS [CS095,CS116].pdf
+├── PESU_FOOD_SYSTEMS.pdf
 ├── PESU_FOOD_SYSTEMS.sql
 ├── procedures.sql
 ├── queries_with_constraints.sql
