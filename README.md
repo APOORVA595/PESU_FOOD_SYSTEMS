@@ -1,6 +1,5 @@
 PESU Food System
-A full-stack, database-powered food ordering and management system designed for PES University.
-This application enables students, shop owners, and administrators to efficiently manage food orders, menu items, inventory, payments, kitchen operations, and notifications in real time.
+PESU Food System A full-stack, database-powered food ordering and management system designed for PES University. This application enables students, shop owners, and administrators to efficiently manage food orders, menu items, inventory, payments, kitchen operations, and notifications in real time.
 
 🌟Features:
 👤Customer Features:
@@ -46,7 +45,7 @@ Functions
 ⚙️Technologies Used:
 Component	                Details
 Frontend	               HTML, CSS, JavaScript
-Backend	                 Node.js
+Backend	                 Python Flask
 Database                 MySQL
 Version Control	         Git & GitHub
 Tools	                   VS Code, MySQL Workbench
@@ -83,20 +82,28 @@ Kitchen staff & shop mapping queries
 Real-time order tracking queries
 
 📂 Project Structure:
-/food_system
-│── /static
-│     ├── /css
-│     ├── /js
-│     └── /uploads
-│── /templates
-│     ├── /admin
-│     ├── /shop
-│     ├── /user
-│     └── /includes
-│── /sql
-│── app.js / server.js (backend)
-│── PESU_FOOD_SYSTEMS.sql (database)
-└── README.md
+DBMS MINI PROJECT/
+├── static/
+│   ├── admin.js
+│   ├── kitchen.js
+│   ├── login.js
+│   ├── script.js
+│   └── style.css
+├── templates/
+│   ├── admin_dashboard.html
+│   ├── customer_order_page.html
+│   ├── customer_orders.html
+│   ├── kitchen_dashboard.html
+│   ├── login.html
+│   └── reports_dashboard.html
+├── app.py
+├── functions.sql
+├── PESU_FOOD_SYSTEMS [CS095,CS116].pdf
+├── PESU_FOOD_SYSTEMS.sql
+├── procedures.sql
+├── queries_with_constraints.sql
+├── queries.sql
+└── triggers.sql
 
 🚀 How to Run the Project
 1. Clone the Repository
@@ -108,12 +115,15 @@ Open MySQL / phpMyAdmin and import:
 PESU_FOOD_SYSTEMS.sql
 
 3. Install Dependencies
-npm install
+pip install flask
+pip install mysql-connector-python
+pip install flask-cors
+pip install python-dotenv
 
-4. Start Server
-node app.py
+5. Start Server
+python app.py
 
-5. Open in Browser
+6. Open in Browser
 (http://127.0.0.1:5000/)
 
 🤝 Contributors
