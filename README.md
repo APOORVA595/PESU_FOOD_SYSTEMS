@@ -108,13 +108,14 @@ DBMS MINI PROJECT/
 🚀 How to Run the Project
 1. Clone the Repository
 git clone https://github.com/APOORVA595/PESU_FOOD_SYSTEMS
+
 cd PESU_FOOD_SYSTEMS
 
-2. Import Database
+3. Import Database
 Open MySQL / phpMyAdmin and import:
 PESU_FOOD_SYSTEMS.sql
 
-3. Install Dependencies
+4. Install Dependencies
 pip install flask
 pip install mysql-connector-python
 pip install flask-cors
