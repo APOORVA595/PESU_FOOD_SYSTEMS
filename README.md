@@ -98,7 +98,7 @@ DBMS MINI PROJECT/
 │   └── reports_dashboard.html
 ├── app.py
 ├── functions.sql
-├── PESU_FOOD_SYSTEMS.pdf
+├── PESUFoodSystems.pdf
 ├── PESU_FOOD_SYSTEMS.sql
 ├── procedures.sql
 ├── queries_with_constraints.sql
@@ -107,8 +107,8 @@ DBMS MINI PROJECT/
 
 🚀 How to Run the Project
 1. Clone the Repository
-git clone (https://github.com/APOORVA595/PESU_FOOD_SYSTEMS)
-cd food_system
+git clone https://github.com/APOORVA595/PESU_FOOD_SYSTEMS
+cd PESU_FOOD_SYSTEMS
 
 2. Import Database
 Open MySQL / phpMyAdmin and import:
