@@ -114,7 +114,7 @@ npm install
 node app.py
 
 5. Open in Browser
-http://localhost:3000
+(http://127.0.0.1:5000/)
 
 🤝 Contributors
 Ashrita Hatwar T
