@@ -109,7 +109,7 @@ DBMS MINI PROJECT/
 1. Clone the Repository
 git clone https://github.com/APOORVA595/PESU_FOOD_SYSTEMS
 
-cd PESU_FOOD_SYSTEMS
+ cd PESU_FOOD_SYSTEMS
 
 3. Import Database
 Open MySQL / phpMyAdmin and import:
