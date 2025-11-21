@@ -100,7 +100,7 @@ Real-time order tracking queries
 
 🚀 How to Run the Project
 1. Clone the Repository
-git clone https://github.com/your-repo-link.git
+git clone (https://github.com/APOORVA595/PESU_FOOD_SYSTEMS)
 cd food_system
 
 2. Import Database
@@ -111,7 +111,7 @@ PESU_FOOD_SYSTEMS.sql
 npm install
 
 4. Start Server
-node server.js
+node app.py
 
 5. Open in Browser
 http://localhost:3000
